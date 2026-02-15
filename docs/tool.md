@@ -8,3 +8,7 @@
 - 链接阶段, gcc调用collect2(不直接调用ld)
 - collect2 负责收集所有的必要的构造函数/析构函数
 - collect2 最后调用ld
+
+## lkernel32
+
+
