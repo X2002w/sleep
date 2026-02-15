@@ -1,5 +1,4 @@
-#include "stdio.h"
-#include "stdlib.h"
+#define WIN32_LEAN_AND_MEAN
 #include "windows.h"
 
 int parse_int(const char* str)
@@ -16,22 +15,75 @@ int parse_int(const char* str)
   }
   return number;
 }
-
-
-int main(int argc, char ** argv)
+static void write_str(const char* s)
 {
-  if(argc != 2)
+  HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (h == NULL || h == INVALID_HANDLE_VALUE) return;
+
+  // strlen (自己算，避免 CRT)
+  const char* p = s;
+  while (*p) p++;
+
+  DWORD written = 0;
+  WriteFile(h, s, (DWORD)(p - s), &written, NULL);
+}
+
+
+
+// 跳过cmd开头空白部分
+static const char* skip_spaces(const char* cmd)
+{
+  while (*cmd == ' ' || *cmd == '\t')
+    cmd++;
+  return cmd;
+}
+
+static const char* skip_token(const char* cmd)
+{
+  while(*cmd && *cmd != ' ')
   {
-    printf("please input sleep number <sleep x>...\n");
-    return 0;
+    cmd++;
   }
+  return cmd;
+}
 
-  int seconds = 0;
-  seconds = parse_int(argv[1]);
+static int get_arg1(char* out, int out_cap)
+{
+  // 获取命令行string指针
+  const char* cmd = GetCommandLineA();
+  if (!cmd) 
+    return 0;
+  
+  const char* p = skip_spaces(cmd);
+  p = skip_token(p);
+  p = skip_spaces(p);
 
-  printf("sleep %d seconds...\n", seconds);
-  //Sleep(seconds * 1000);
+  if (*p == '\0')
+    return 0;
 
+  int n = 0;
+  while(*p && *p != ' ' && *p != '\t' && n < out_cap -1)
+    out[n++] = *p++;
 
-  return 0;
+  out[n] = '\0';
+  return n > 0;
+}
+
+void _start(void)
+{
+  char arg1[64];
+  
+  if(!get_arg1(arg1, (int)sizeof(arg1)))
+  {
+    write_str("usage: sleep <seocnds> ...\n");
+
+    ExitProcess(0);
+  }
+  
+  int seconds = parse_int(arg1);
+  if (seconds < 0)
+    seconds = 0;
+
+  Sleep(seconds * 1000);
+  ExitProcess(0);
 }
